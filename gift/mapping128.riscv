@@ -1,0 +1,299 @@
+
+.macro RightShift dst, src, mask, shift
+	li t0, \mask
+	and t0, \src, t0
+	srl t0, t0, \shift
+	or \dst, \dst, t0
+.endm
+
+.macro LeftShift dst, src, mask, shift
+	li t0, \mask
+	and t0, \src, t0
+	sll t0, t0, \shift
+	or \dst, \dst, t0
+.endm
+
+.section .text
+	.globl main
+
+	main:
+		la t0, txt
+
+		lw s0, 12(t0)
+		lw s1, 8(t0)
+		lw s2, 4(t0)
+		lw s3, 0(t0)
+
+		# To Bitslice
+		mv a0, zero
+		mv a1, zero
+		mv a2, zero
+		mv a3, zero
+		RightShift a0, s0, 0x80000000, 24
+		RightShift a1, s0, 0x40000000, 23
+		RightShift a2, s0, 0x20000000, 22
+		RightShift a3, s0, 0x10000000, 21
+		RightShift a0, s0, 0x8000000, 21
+		RightShift a1, s0, 0x4000000, 20
+		RightShift a2, s0, 0x2000000, 19
+		RightShift a3, s0, 0x1000000, 18
+		RightShift a0, s0, 0x800000, 18
+		RightShift a1, s0, 0x400000, 17
+		RightShift a2, s0, 0x200000, 16
+		RightShift a3, s0, 0x100000, 15
+		RightShift a0, s0, 0x80000, 15
+		RightShift a1, s0, 0x40000, 14
+		RightShift a2, s0, 0x20000, 13
+		RightShift a3, s0, 0x10000, 12
+		RightShift a0, s0, 0x8000, 12
+		RightShift a1, s0, 0x4000, 11
+		RightShift a2, s0, 0x2000, 10
+		RightShift a3, s0, 0x1000, 9
+		RightShift a0, s0, 0x800, 9
+		RightShift a1, s0, 0x400, 8
+		RightShift a2, s0, 0x200, 7
+		RightShift a3, s0, 0x100, 6
+		RightShift a0, s0, 0x80, 6
+		RightShift a1, s0, 0x40, 5
+		RightShift a2, s0, 0x20, 4
+		RightShift a3, s0, 0x10, 3
+		RightShift a0, s0, 0x8, 3
+		RightShift a1, s0, 0x4, 2
+		RightShift a2, s0, 0x2, 1
+		LeftShift a3, s0, 0x1, 0
+		RightShift a0, s1, 0x80000000, 16
+		RightShift a1, s1, 0x40000000, 15
+		RightShift a2, s1, 0x20000000, 14
+		RightShift a3, s1, 0x10000000, 13
+		RightShift a0, s1, 0x8000000, 13
+		RightShift a1, s1, 0x4000000, 12
+		RightShift a2, s1, 0x2000000, 11
+		RightShift a3, s1, 0x1000000, 10
+		RightShift a0, s1, 0x800000, 10
+		RightShift a1, s1, 0x400000, 9
+		RightShift a2, s1, 0x200000, 8
+		RightShift a3, s1, 0x100000, 7
+		RightShift a0, s1, 0x80000, 7
+		RightShift a1, s1, 0x40000, 6
+		RightShift a2, s1, 0x20000, 5
+		RightShift a3, s1, 0x10000, 4
+		RightShift a0, s1, 0x8000, 4
+		RightShift a1, s1, 0x4000, 3
+		RightShift a2, s1, 0x2000, 2
+		RightShift a3, s1, 0x1000, 1
+		RightShift a0, s1, 0x800, 1
+		LeftShift a1, s1, 0x400, 0
+		LeftShift a2, s1, 0x200, 1
+		LeftShift a3, s1, 0x100, 2
+		LeftShift a0, s1, 0x80, 2
+		LeftShift a1, s1, 0x40, 3
+		LeftShift a2, s1, 0x20, 4
+		LeftShift a3, s1, 0x10, 5
+		LeftShift a0, s1, 0x8, 5
+		LeftShift a1, s1, 0x4, 6
+		LeftShift a2, s1, 0x2, 7
+		LeftShift a3, s1, 0x1, 8
+		RightShift a0, s2, 0x80000000, 8
+		RightShift a1, s2, 0x40000000, 7
+		RightShift a2, s2, 0x20000000, 6
+		RightShift a3, s2, 0x10000000, 5
+		RightShift a0, s2, 0x8000000, 5
+		RightShift a1, s2, 0x4000000, 4
+		RightShift a2, s2, 0x2000000, 3
+		RightShift a3, s2, 0x1000000, 2
+		RightShift a0, s2, 0x800000, 2
+		RightShift a1, s2, 0x400000, 1
+		LeftShift a2, s2, 0x200000, 0
+		LeftShift a3, s2, 0x100000, 1
+		LeftShift a0, s2, 0x80000, 1
+		LeftShift a1, s2, 0x40000, 2
+		LeftShift a2, s2, 0x20000, 3
+		LeftShift a3, s2, 0x10000, 4
+		LeftShift a0, s2, 0x8000, 4
+		LeftShift a1, s2, 0x4000, 5
+		LeftShift a2, s2, 0x2000, 6
+		LeftShift a3, s2, 0x1000, 7
+		LeftShift a0, s2, 0x800, 7
+		LeftShift a1, s2, 0x400, 8
+		LeftShift a2, s2, 0x200, 9
+		LeftShift a3, s2, 0x100, 10
+		LeftShift a0, s2, 0x80, 10
+		LeftShift a1, s2, 0x40, 11
+		LeftShift a2, s2, 0x20, 12
+		LeftShift a3, s2, 0x10, 13
+		LeftShift a0, s2, 0x8, 13
+		LeftShift a1, s2, 0x4, 14
+		LeftShift a2, s2, 0x2, 15
+		LeftShift a3, s2, 0x1, 16
+		LeftShift a0, s3, 0x80000000, 0
+		LeftShift a1, s3, 0x40000000, 1
+		LeftShift a2, s3, 0x20000000, 2
+		LeftShift a3, s3, 0x10000000, 3
+		LeftShift a0, s3, 0x8000000, 3
+		LeftShift a1, s3, 0x4000000, 4
+		LeftShift a2, s3, 0x2000000, 5
+		LeftShift a3, s3, 0x1000000, 6
+		LeftShift a0, s3, 0x800000, 6
+		LeftShift a1, s3, 0x400000, 7
+		LeftShift a2, s3, 0x200000, 8
+		LeftShift a3, s3, 0x100000, 9
+		LeftShift a0, s3, 0x80000, 9
+		LeftShift a1, s3, 0x40000, 10
+		LeftShift a2, s3, 0x20000, 11
+		LeftShift a3, s3, 0x10000, 12
+		LeftShift a0, s3, 0x8000, 12
+		LeftShift a1, s3, 0x4000, 13
+		LeftShift a2, s3, 0x2000, 14
+		LeftShift a3, s3, 0x1000, 15
+		LeftShift a0, s3, 0x800, 15
+		LeftShift a1, s3, 0x400, 16
+		LeftShift a2, s3, 0x200, 17
+		LeftShift a3, s3, 0x100, 18
+		LeftShift a0, s3, 0x80, 18
+		LeftShift a1, s3, 0x40, 19
+		LeftShift a2, s3, 0x20, 20
+		LeftShift a3, s3, 0x10, 21
+		LeftShift a0, s3, 0x8, 21
+		LeftShift a1, s3, 0x4, 22
+		LeftShift a2, s3, 0x2, 23
+		LeftShift a3, s3, 0x1, 24
+
+
+		# FROM bitslice
+		mv a4, zero
+		mv a5, zero
+		mv a6, zero
+		mv a7, zero
+
+		LeftShift a4, a0, 0x80000000, 0
+		RightShift a4, a0, 0x40000000, 3
+		RightShift a4, a0, 0x20000000, 6
+		RightShift a4, a0, 0x10000000, 9
+		RightShift a4, a0, 0x8000000, 12
+		RightShift a4, a0, 0x4000000, 15
+		RightShift a4, a0, 0x2000000, 18
+		RightShift a4, a0, 0x1000000, 21
+		LeftShift a5, a0, 0x800000, 8
+		LeftShift a5, a0, 0x400000, 5
+		LeftShift a5, a0, 0x200000, 2
+		RightShift a5, a0, 0x100000, 1
+		RightShift a5, a0, 0x80000, 4
+		RightShift a5, a0, 0x40000, 7
+		RightShift a5, a0, 0x20000, 10
+		RightShift a5, a0, 0x10000, 13
+		LeftShift a6, a0, 0x8000, 16
+		LeftShift a6, a0, 0x4000, 13
+		LeftShift a6, a0, 0x2000, 10
+		LeftShift a6, a0, 0x1000, 7
+		LeftShift a6, a0, 0x800, 4
+		LeftShift a6, a0, 0x400, 1
+		RightShift a6, a0, 0x200, 2
+		RightShift a6, a0, 0x100, 5
+		LeftShift a7, a0, 0x80, 24
+		LeftShift a7, a0, 0x40, 21
+		LeftShift a7, a0, 0x20, 18
+		LeftShift a7, a0, 0x10, 15
+		LeftShift a7, a0, 0x8, 12
+		LeftShift a7, a0, 0x4, 9
+		LeftShift a7, a0, 0x2, 6
+		LeftShift a7, a0, 0x1, 3
+		RightShift a4, a1, 0x80000000, 1
+		RightShift a4, a1, 0x40000000, 4
+		RightShift a4, a1, 0x20000000, 7
+		RightShift a4, a1, 0x10000000, 10
+		RightShift a4, a1, 0x8000000, 13
+		RightShift a4, a1, 0x4000000, 16
+		RightShift a4, a1, 0x2000000, 19
+		RightShift a4, a1, 0x1000000, 22
+		LeftShift a5, a1, 0x800000, 7
+		LeftShift a5, a1, 0x400000, 4
+		LeftShift a5, a1, 0x200000, 1
+		RightShift a5, a1, 0x100000, 2
+		RightShift a5, a1, 0x80000, 5
+		RightShift a5, a1, 0x40000, 8
+		RightShift a5, a1, 0x20000, 11
+		RightShift a5, a1, 0x10000, 14
+		LeftShift a6, a1, 0x8000, 15
+		LeftShift a6, a1, 0x4000, 12
+		LeftShift a6, a1, 0x2000, 9
+		LeftShift a6, a1, 0x1000, 6
+		LeftShift a6, a1, 0x800, 3
+		LeftShift a6, a1, 0x400, 0
+		RightShift a6, a1, 0x200, 3
+		RightShift a6, a1, 0x100, 6
+		LeftShift a7, a1, 0x80, 23
+		LeftShift a7, a1, 0x40, 20
+		LeftShift a7, a1, 0x20, 17
+		LeftShift a7, a1, 0x10, 14
+		LeftShift a7, a1, 0x8, 11
+		LeftShift a7, a1, 0x4, 8
+		LeftShift a7, a1, 0x2, 5
+		LeftShift a7, a1, 0x1, 2
+		RightShift a4, a2, 0x80000000, 2
+		RightShift a4, a2, 0x40000000, 5
+		RightShift a4, a2, 0x20000000, 8
+		RightShift a4, a2, 0x10000000, 11
+		RightShift a4, a2, 0x8000000, 14
+		RightShift a4, a2, 0x4000000, 17
+		RightShift a4, a2, 0x2000000, 20
+		RightShift a4, a2, 0x1000000, 23
+		LeftShift a5, a2, 0x800000, 6
+		LeftShift a5, a2, 0x400000, 3
+		LeftShift a5, a2, 0x200000, 0
+		RightShift a5, a2, 0x100000, 3
+		RightShift a5, a2, 0x80000, 6
+		RightShift a5, a2, 0x40000, 9
+		RightShift a5, a2, 0x20000, 12
+		RightShift a5, a2, 0x10000, 15
+		LeftShift a6, a2, 0x8000, 14
+		LeftShift a6, a2, 0x4000, 11
+		LeftShift a6, a2, 0x2000, 8
+		LeftShift a6, a2, 0x1000, 5
+		LeftShift a6, a2, 0x800, 2
+		RightShift a6, a2, 0x400, 1
+		RightShift a6, a2, 0x200, 4
+		RightShift a6, a2, 0x100, 7
+		LeftShift a7, a2, 0x80, 22
+		LeftShift a7, a2, 0x40, 19
+		LeftShift a7, a2, 0x20, 16
+		LeftShift a7, a2, 0x10, 13
+		LeftShift a7, a2, 0x8, 10
+		LeftShift a7, a2, 0x4, 7
+		LeftShift a7, a2, 0x2, 4
+		LeftShift a7, a2, 0x1, 1
+		RightShift a4, a3, 0x80000000, 3
+		RightShift a4, a3, 0x40000000, 6
+		RightShift a4, a3, 0x20000000, 9
+		RightShift a4, a3, 0x10000000, 12
+		RightShift a4, a3, 0x8000000, 15
+		RightShift a4, a3, 0x4000000, 18
+		RightShift a4, a3, 0x2000000, 21
+		RightShift a4, a3, 0x1000000, 24
+		LeftShift a5, a3, 0x800000, 5
+		LeftShift a5, a3, 0x400000, 2
+		RightShift a5, a3, 0x200000, 1
+		RightShift a5, a3, 0x100000, 4
+		RightShift a5, a3, 0x80000, 7
+		RightShift a5, a3, 0x40000, 10
+		RightShift a5, a3, 0x20000, 13
+		RightShift a5, a3, 0x10000, 16
+		LeftShift a6, a3, 0x8000, 13
+		LeftShift a6, a3, 0x4000, 10
+		LeftShift a6, a3, 0x2000, 7
+		LeftShift a6, a3, 0x1000, 4
+		LeftShift a6, a3, 0x800, 1
+		RightShift a6, a3, 0x400, 2
+		RightShift a6, a3, 0x200, 5
+		RightShift a6, a3, 0x100, 8
+		LeftShift a7, a3, 0x80, 21
+		LeftShift a7, a3, 0x40, 18
+		LeftShift a7, a3, 0x20, 15
+		LeftShift a7, a3, 0x10, 12
+		LeftShift a7, a3, 0x8, 9
+		LeftShift a7, a3, 0x4, 6
+		LeftShift a7, a3, 0x2, 3
+		LeftShift a7, a3, 0x1, 0
+	END: j END
+
+.section .rodata
+	txt: .word 0xfedcba98, 0x76543210, 0xfedcba98, 0x76543210

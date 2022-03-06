@@ -1,0 +1,323 @@
+# a0 - a3 : key
+# s0 - s3 : plaintext/ciphertext
+# s4 : while counter
+# s5 : s_box address
+# s6-s9 : temporary
+# a4 : round constant
+# s10, s11 : benchmarking
+
+.macro RightShift dst, src, mask, shift
+	li t0, \mask
+	and t0, \src, t0
+	srl t0, t0, \shift
+	or \dst, \dst, t0
+.endm
+
+.macro LeftShift dst, src, mask, shift
+	li t0, \mask
+	and t0, \src, t0
+	sll t0, t0, \shift
+	or \dst, \dst, t0
+.endm
+
+.macro Subst dst, src
+	and t0, \src, 0xf
+	add t1, s5, t0 # compute the address of the new nibble
+	lb t1, 0(t1)
+	sll t1, t1, 28
+
+	srl \src, \src, 4
+	srl \dst, \dst, 4
+	
+	or \dst, \dst, t1
+.endm
+
+.macro SubCells x
+	Subst s6, \x
+	Subst s6, \x
+	Subst s6, \x
+	Subst s6, \x
+
+	Subst s6, \x
+	Subst s6, \x
+	Subst s6, \x
+	Subst s6, \x
+
+	mv \x, s6
+.endm
+
+.macro PermBits
+	mv s6, zero
+	mv s7, zero
+	mv s8, zero
+	mv s9, zero
+	LeftShift s9, s0, 0x80000000, 0
+	LeftShift s6, s0, 0x40000000, 0
+	LeftShift s7, s0, 0x20000000, 0
+	LeftShift s8, s0, 0x10000000, 0
+	LeftShift s8, s0, 0x8000000, 4
+	LeftShift s9, s0, 0x4000000, 4
+	LeftShift s6, s0, 0x2000000, 4
+	LeftShift s7, s0, 0x1000000, 4
+	LeftShift s7, s0, 0x800000, 8
+	LeftShift s8, s0, 0x400000, 8
+	LeftShift s9, s0, 0x200000, 8
+	LeftShift s6, s0, 0x100000, 8
+	LeftShift s6, s0, 0x84000, 12
+	LeftShift s7, s0, 0x42000, 12
+	LeftShift s8, s0, 0x21000, 12
+	LeftShift s9, s0, 0x18000, 12
+	LeftShift s8, s0, 0x800, 16
+	LeftShift s9, s0, 0x400, 16
+	LeftShift s6, s0, 0x200, 16
+	LeftShift s7, s0, 0x100, 16
+	LeftShift s7, s0, 0x80, 20
+	LeftShift s8, s0, 0x40, 20
+	LeftShift s9, s0, 0x20, 20
+	LeftShift s6, s0, 0x10, 20
+	LeftShift s6, s0, 0x8, 24
+	LeftShift s7, s0, 0x4, 24
+	LeftShift s8, s0, 0x2, 24
+	LeftShift s9, s0, 0x1, 24
+	RightShift s9, s1, 0x80000000, 8
+	RightShift s6, s1, 0x40000000, 8
+	RightShift s7, s1, 0x20000000, 8
+	RightShift s8, s1, 0x10000000, 8
+	RightShift s8, s1, 0x8000000, 4
+	RightShift s9, s1, 0x4000000, 4
+	RightShift s6, s1, 0x2000000, 4
+	RightShift s7, s1, 0x1000000, 4
+	LeftShift s7, s1, 0x800000, 0
+	LeftShift s8, s1, 0x400000, 0
+	LeftShift s9, s1, 0x200000, 0
+	LeftShift s6, s1, 0x100000, 0
+	LeftShift s6, s1, 0x84000, 4
+	LeftShift s7, s1, 0x42000, 4
+	LeftShift s8, s1, 0x21000, 4
+	LeftShift s9, s1, 0x18000, 4
+	LeftShift s8, s1, 0x800, 8
+	LeftShift s9, s1, 0x400, 8
+	LeftShift s6, s1, 0x200, 8
+	LeftShift s7, s1, 0x100, 8
+	LeftShift s7, s1, 0x80, 12
+	LeftShift s8, s1, 0x40, 12
+	LeftShift s9, s1, 0x20, 12
+	LeftShift s6, s1, 0x10, 12
+	LeftShift s6, s1, 0x8, 16
+	LeftShift s7, s1, 0x4, 16
+	LeftShift s8, s1, 0x2, 16
+	LeftShift s9, s1, 0x1, 16
+	RightShift s9, s2, 0x80000000, 16
+	RightShift s6, s2, 0x40000000, 16
+	RightShift s7, s2, 0x20000000, 16
+	RightShift s8, s2, 0x10000000, 16
+	RightShift s8, s2, 0x8000000, 12
+	RightShift s9, s2, 0x4000000, 12
+	RightShift s6, s2, 0x2000000, 12
+	RightShift s7, s2, 0x1000000, 12
+	RightShift s7, s2, 0x800000, 8
+	RightShift s8, s2, 0x400000, 8
+	RightShift s9, s2, 0x200000, 8
+	RightShift s6, s2, 0x100000, 8
+	RightShift s6, s2, 0x84000, 4
+	RightShift s7, s2, 0x42000, 4
+	RightShift s8, s2, 0x21000, 4
+	RightShift s9, s2, 0x18000, 4
+	LeftShift s8, s2, 0x800, 0
+	LeftShift s9, s2, 0x400, 0
+	LeftShift s6, s2, 0x200, 0
+	LeftShift s7, s2, 0x100, 0
+	LeftShift s7, s2, 0x80, 4
+	LeftShift s8, s2, 0x40, 4
+	LeftShift s9, s2, 0x20, 4
+	LeftShift s6, s2, 0x10, 4
+	LeftShift s6, s2, 0x8, 8
+	LeftShift s7, s2, 0x4, 8
+	LeftShift s8, s2, 0x2, 8
+	LeftShift s9, s2, 0x1, 8
+	RightShift s9, s3, 0x80000000, 24
+	RightShift s6, s3, 0x40000000, 24
+	RightShift s7, s3, 0x20000000, 24
+	RightShift s8, s3, 0x10000000, 24
+	RightShift s8, s3, 0x8000000, 20
+	RightShift s9, s3, 0x4000000, 20
+	RightShift s6, s3, 0x2000000, 20
+	RightShift s7, s3, 0x1000000, 20
+	RightShift s7, s3, 0x800000, 16
+	RightShift s8, s3, 0x400000, 16
+	RightShift s9, s3, 0x200000, 16
+	RightShift s6, s3, 0x100000, 16
+	RightShift s6, s3, 0x84000, 12
+	RightShift s7, s3, 0x42000, 12
+	RightShift s8, s3, 0x21000, 12
+	RightShift s9, s3, 0x18000, 12
+	RightShift s8, s3, 0x800, 8
+	RightShift s9, s3, 0x400, 8
+	RightShift s6, s3, 0x200, 8
+	RightShift s7, s3, 0x100, 8
+	RightShift s7, s3, 0x80, 4
+	RightShift s8, s3, 0x40, 4
+	RightShift s9, s3, 0x20, 4
+	RightShift s6, s3, 0x10, 4
+	LeftShift s6, s3, 0x8, 0
+	LeftShift s7, s3, 0x4, 0
+	LeftShift s8, s3, 0x2, 0
+	LeftShift s9, s3, 0x1, 0
+
+	mv s0, s6
+	mv s1, s7
+	mv s2, s8
+	mv s3, s9
+.endm
+
+.macro ExpandKey dst0, dst1, dst2, dst3, src
+	and \dst3, \src, 0x1
+	LeftShift \dst3, \src, 0x2, 3
+	LeftShift \dst3, \src, 0x4, 6
+	LeftShift \dst3, \src, 0x8, 9
+	LeftShift \dst3, \src, 0x10, 12
+	LeftShift \dst3, \src, 0x20, 15
+	LeftShift \dst3, \src, 0x40, 18
+	LeftShift \dst3, \src, 0x80, 21
+
+	mv \dst2, zero
+	RightShift \dst2, \src, 0x100, 8
+	RightShift \dst2, \src, 0x200, 5
+	RightShift \dst2, \src, 0x400, 2
+	LeftShift \dst2, \src, 0x800, 1
+	LeftShift \dst2, \src, 0x1000, 4
+	LeftShift \dst2, \src, 0x2000, 7
+	LeftShift \dst2, \src, 0x4000, 10
+	LeftShift \dst2, \src, 0x8000, 13
+
+	mv \dst1, zero
+	RightShift \dst1, \src, 0x10000, 16
+	RightShift \dst1, \src, 0x20000, 13
+	RightShift \dst1, \src, 0x40000, 10
+	RightShift \dst1, \src, 0x80000, 7
+	RightShift \dst1, \src, 0x100000, 4
+	RightShift \dst1, \src, 0x200000, 1
+	LeftShift \dst1, \src, 0x400000, 2
+	LeftShift \dst1, \src, 0x800000, 5
+
+	mv \dst0, zero
+	RightShift \dst0, \src, 0x1000000, 24
+	RightShift \dst0, \src, 0x2000000, 21
+	RightShift \dst0, \src, 0x4000000, 18
+	RightShift \dst0, \src, 0x8000000, 15
+	RightShift \dst0, \src, 0x10000000, 12
+	RightShift \dst0, \src, 0x20000000, 9
+	RightShift \dst0, \src, 0x40000000, 6
+	RightShift \dst0, \src, 0x80000000, 3
+.endm
+
+.macro UpdateKey
+	li t0, 0xfffc0000
+	and t0, a0, t0
+	li t1, 0x00030000
+	and t1, a0, t1
+	srl t0, t0, 2
+	sll t1, t1, 14
+	or t0, t0, t1
+
+	li t1, 0x0000f000
+	and t1, a0, t1
+	li t2, 0x00000fff
+	and t2, a0, t2
+	srl t1, t1, 12
+	sll t2, t2, 4
+	or t1, t1, t2
+
+	mv a0, a1
+	mv a1, a2
+	mv a2, a3
+	or a3, t0, t1
+.endm
+
+.section .text
+	.globl main
+	
+	main:
+		la t0, encrypt
+		jalr zero, 0(t0)
+
+.section .itim,"ax",@progbits
+	.globl encrypt
+
+	encrypt:
+		
+		la s5, s_box # sbox
+		
+		la a4, const # round constant
+		
+		la t0, txt2_e # plaintext
+		lw s0, 0(t0)
+		lw s1, 4(t0)
+		lw s2, 8(t0)
+		lw s3, 12(t0)
+
+		la t0, key2	# key
+		lw a0, 12(t0)
+		lw a1, 8(t0)
+		lw a2, 4(t0)
+		lw a3, 0(t0)
+
+		li s4, 40
+		DO:
+			#---SubCells---
+
+			SubCells s0
+			SubCells s1
+			SubCells s2
+			SubCells s3
+			
+
+			#---PermBits---
+			PermBits
+			#---AddRoundKey---
+			ExpandKey s6, s7, s8, s9, a0
+			sll s6, s6, 1
+			sll s7, s7, 1
+			sll s8, s8, 1
+			sll s9, s9, 1
+
+			xor s0, s0, s6
+			xor s1, s1, s7
+			xor s2, s2, s8
+			xor s3, s3, s9
+
+			ExpandKey s6, s7, s8, s9, a2
+			sll s6, s6, 2
+			sll s7, s7, 2
+			sll s8, s8, 2
+			sll s9, s9, 2
+
+			xor s0, s0, s6
+			xor s1, s1, s7
+			xor s2, s2, s8
+			xor s3, s3, s9
+
+			#-----Add Round Constant-----
+			lw t0, 0(a4)
+			xor s3, s3, t0
+
+			li t0, 0x80000000
+			xor s0, s0, t0
+			#-----Update Round Key-----
+			UpdateKey
+			#-----Update Round Constant-----
+			add a4, a4, 4
+		addi s4, s4, -1
+		WHILE: bne s4, zero, DO
+
+	END: j END
+
+
+.section .data
+	
+	txt2_e: .word 0xfedcba98, 0x76543210, 0xfedcba98, 0x76543210
+	key2: .word 0xfedcba98, 0x76543210, 0xfedcba98, 0x76543210 
+
+	const: .word 0x8,0x88,0x888,0x8888,0x88888,0x888880,0x888808,0x888088,0x880888,0x808888,0x88880,0x888800,0x888008,0x880088,0x800888,0x8880,0x88808,0x888080,0x880808,0x808088,0x80880,0x808800,0x88000,0x880000,0x800008,0x80,0x808,0x8088,0x80888,0x808880,0x88800,0x888000,0x880008,0x800088,0x880,0x8808,0x88088,0x880880,0x808808,0x88080,0x880800,0x808008,0x80080,0x800800,0x8000,0x80008,0x800080,0x800
+
+	s_box: .byte 0x1, 0xa, 0x4, 0xc, 0x6, 0xf, 0x3, 0x9, 0x2, 0xd, 0xb, 0x7, 0x5, 0x0, 0x8, 0xe

@@ -1,0 +1,351 @@
+# s0 - s3 : plaintext
+# a0 - a3 : key
+# s4 : round constant address
+# s5 : while counter
+
+.section .text
+	.globl main
+	
+	main:
+		la t0, encrypt
+		jalr zero, 0(t0)
+
+.section .itim,"ax",@progbits
+	.globl encrypt
+
+	encrypt:
+
+		li s11, 0xffffffff
+
+		la s4, const # round constant
+
+		la t0, txt3_e # plaintext
+		lw s0, 0(t0)
+		lw s1, 4(t0)
+		lw s2, 8(t0)
+		lw s3, 12(t0)
+
+		la t0, key3 # key
+		lw a0, 12(t0)
+		lw a1, 8(t0)
+		lw a2, 4(t0)
+		lw a3, 0(t0)
+
+		li s5, 40 # 40 rounds
+		DO:
+			#---SubCells---
+			SubCells:
+			and t0, s0, s2
+			xor s1, s1, t0 # x[1] = x[1] XOR (x[0] AND x[2])
+			and t0, s1, s3
+			xor t0, s0, t0 # t = x[0] XOR (x[1] AND x[3])
+			or t1, t0, s1
+			xor s2, s2, t1 # x[2] = x[2] XOR (t OR x[1])
+			xor s0, s3, s2 # x[0] = x[3] XOR x[2]
+			xor s1, s1, s0 # x[1] = x[1] XOR x[0]
+			xor s0, s0, s11 # x[0] = NOT x[0]
+			and t1, t0, s1 
+			xor s2, s2, t1 # x[2] = x[2] XOR (t AND x[1])
+			mv s3, t0 # x[3] = t
+			
+			#---PermBits---
+			PermBits:
+			#-----Slice 0-----
+			#-------Transpose-------
+			li t0, 0x50505050
+			and t1, s0, t0 # mask 0x50505050
+			srli t1, t1, 3 # >> 3
+			li t0, 0x0a0a0a0a
+			and t0, s0, t0 # mask 0x0a0a0a0a
+			slli t0, t0, 3 # << 3
+			li t2, 0xa5a5a5a5
+			and s0, s0, t2 # mask 0xa5a5a5a5
+			or s0, s0, t0 
+			or s0, s0, t1
+
+			li t0, 0x33003300
+			and t0, s0, t0 # mask 0x33003300
+			srli t0, t0, 6 # >> 6
+			li t1, 0x00cc00cc
+			and t1, s0, t1 # mask 0x00cc00cc
+			slli t1, t1, 6 # << 6
+			li t2, 0xcc33cc33
+			and s0, s0, t2 # mask 0xcc33cc33 
+			or s0, s0, t0
+			or s0, s0, t1
+
+			li t0, 0x0f000000
+			and t0, s0, t0 # mask 0x0f000000
+			srli t0, t0, 4 # >> 4
+			li t1, 0x00f00000
+			and t1, s0, t1 # mask 0x00f00000
+			srli t1, t1, 8 # >> 8
+			li t2, 0x000f0000
+			and t2, s0, t2 # mask 0x000f0000
+			srli t2, t2, 12 # >> 12
+			li t3, 0x0000f000
+			and t3, s0, t3 # mask 0x0000f000
+			slli t3, t3, 12 # << 12
+			li t4, 0x00000f00
+			and t4, s0, t4 # mask 0x00000f00
+			slli t4, t4, 8 # << 8
+			and t5, s0, 0xf0 # mask 0x000000f0
+			slli t5, t5, 4 # << 4
+			li t6, 0xf000000f
+			and s0, s0, t6 # mask 0xf000000f
+			or s0, s0, t0
+			or s0, s0, t1
+			or s0, s0, t2
+			or s0, s0, t3
+			or s0, s0, t4
+			or s0, s0, t5
+			#--------Swap Rows-------
+			li t0, 0xff000000
+			and t0, s0, t0 # isolate row 0
+			srli t0, t0, 16 # row 0 -> row 2
+			li t1, 0x0000ff00
+			and t1, s0, t1 # isolate row 1
+			slli t1, t1, 16 # row 2 -> row 0
+			li t2, 0x00ff00ff
+			and s0, s0, t2 # clean space for row 0 and 2
+			or s0, s0, t0
+			or s0, s0, t1
+			
+			#-----Slice 1-----
+			#-------Transpose-------
+			li t0, 0x50505050
+			and t1, s1, t0 # mask 0x50505050
+			srli t1, t1, 3 # >> 3
+			li t0, 0x0a0a0a0a
+			and t0, s1, t0 # mask 0x0a0a0a0a
+			slli t0, t0, 3 # << 3
+			li t2, 0xa5a5a5a5
+			and s1, s1, t2 # mask 0xa5a5a5a5
+			or s1, s1, t0 
+			or s1, s1, t1
+
+			li t0, 0x33003300
+			and t0, s1, t0 # mask 0x33003300
+			srli t0, t0, 6 # >> 6
+			li t1, 0x00cc00cc
+			and t1, s1, t1 # mask 0x00cc00cc
+			slli t1, t1, 6 # << 6
+			li t2, 0xcc33cc33
+			and s1, s1, t2 # mask 0xcc33cc33 
+			or s1, s1, t0
+			or s1, s1, t1
+
+			li t0, 0x0f000000
+			and t0, s1, t0 # mask 0x0f000000
+			srli t0, t0, 4 # >> 4
+			li t1, 0x00f00000
+			and t1, s1, t1 # mask 0x00f00000
+			srli t1, t1, 8 # >> 8
+			li t2, 0x000f0000
+			and t2, s1, t2 # mask 0x000f0000
+			srli t2, t2, 12 # >> 12
+			li t3, 0x0000f000
+			and t3, s1, t3 # mask 0x0000f000
+			slli t3, t3, 12 # << 12
+			li t4, 0x00000f00
+			and t4, s1, t4 # mask 0x00000f00
+			slli t4, t4, 8 # << 8
+			and t5, s1, 0xf0 # mask 0x000000f0
+			slli t5, t5, 4 # << 4
+			li t6, 0xf000000f
+			and s1, s1, t6 # mask 0xf000000f
+			or s1, s1, t0
+			or s1, s1, t1
+			or s1, s1, t2
+			or s1, s1, t3
+			or s1, s1, t4
+			or s1, s1, t5
+			#--------Swap Rows-------
+
+			li t0, 0xff00ff00
+			and t0, s1, t0 # isolate row 0 and 2
+			srli t0, t0, 8 # row 0 -> 1 | row 2 -> 3
+			li t1, 0x00ff00ff
+			and s1, s1, t1 # isolate row 1 and 3
+			slli s1, s1, 8 # row 1 -> 0 | row 3 -> 2
+			or s1, s1, t0
+
+			#-----Slice 2-----
+			#-------Transpose-------
+			li t0, 0x50505050
+			and t1, s2, t0 # mask 0x50505050
+			srli t1, t1, 3 # >> 3
+			li t0, 0x0a0a0a0a
+			and t0, s2, t0 # mask 0x0a0a0a0a
+			slli t0, t0, 3 # << 3
+			li t2, 0xa5a5a5a5
+			and s2, s2, t2 # mask 0xa5a5a5a5
+			or s2, s2, t0 
+			or s2, s2, t1
+
+			li t0, 0x33003300
+			and t0, s2, t0 # mask 0x33003300
+			srli t0, t0, 6 # >> 6
+			li t1, 0x00cc00cc
+			and t1, s2, t1 # mask 0x00cc00cc
+			slli t1, t1, 6 # << 6
+			li t2, 0xcc33cc33
+			and s2, s2, t2 # mask 0xcc33cc33 
+			or s2, s2, t0
+			or s2, s2, t1
+
+			li t0, 0x0f000000
+			and t0, s2, t0 # mask 0x0f000000
+			srli t0, t0, 4 # >> 4
+			li t1, 0x00f00000
+			and t1, s2, t1 # mask 0x00f00000
+			srli t1, t1, 8 # >> 8
+			li t2, 0x000f0000
+			and t2, s2, t2 # mask 0x000f0000
+			srli t2, t2, 12 # >> 12
+			li t3, 0x0000f000
+			and t3, s2, t3 # mask 0x0000f000
+			slli t3, t3, 12 # << 12
+			li t4, 0x00000f00
+			and t4, s2, t4 # mask 0x00000f00
+			slli t4, t4, 8 # << 8
+			and t5, s2, 0xf0 # mask 0x000000f0
+			slli t5, t5, 4 # << 4
+			li t6, 0xf000000f
+			and s2, s2, t6 # mask 0xf000000f
+			or s2, s2, t0
+			or s2, s2, t1
+			or s2, s2, t2
+			or s2, s2, t3
+			or s2, s2, t4
+			or s2, s2, t5
+
+			#--------Swap Rows-------
+			li t0, 0x00ff0000
+			and t0, s2, t0 # isolate row 1
+			srli t0, t0, 16 # row 1 -> 3
+			and t1, s2, 0xff # isolate row 3
+			slli t1, t1, 16 # row 3 -> 1
+
+			li t2, 0xff00ff00
+			and s2, s2, t2 # clean space for row 1 and 3
+			or s2, s2, t0
+			or s2, s2, t1
+			
+			#-----Slice 3-----
+			#-------Transpose-------
+			li t0, 0x50505050
+			and t1, s3, t0 # mask 0x50505050
+			srli t1, t1, 3 # >> 3
+			li t0, 0x0a0a0a0a
+			and t0, s3, t0 # mask 0x0a0a0a0a
+			slli t0, t0, 3 # << 3
+			li t2, 0xa5a5a5a5
+			and s3, s3, t2 # mask 0xa5a5a5a5
+			or s3, s3, t0 
+			or s3, s3, t1
+
+			li t0, 0x33003300
+			and t0, s3, t0 # mask 0x33003300
+			srli t0, t0, 6 # >> 6
+			li t1, 0x00cc00cc
+			and t1, s3, t1 # mask 0x00cc00cc
+			slli t1, t1, 6 # << 6
+			li t2, 0xcc33cc33
+			and s3, s3, t2 # mask 0xcc33cc33 
+			or s3, s3, t0
+			or s3, s3, t1
+
+			li t0, 0x0f000000
+			and t0, s3, t0 # mask 0x0f000000
+			srli t0, t0, 4 # >> 4
+			li t1, 0x00f00000
+			and t1, s3, t1 # mask 0x00f00000
+			srli t1, t1, 8 # >> 8
+			li t2, 0x000f0000
+			and t2, s3, t2 # mask 0x000f0000
+			srli t2, t2, 12 # >> 12
+			li t3, 0x0000f000
+			and t3, s3, t3 # mask 0x0000f000
+			slli t3, t3, 12 # << 12
+			li t4, 0x00000f00
+			and t4, s3, t4 # mask 0x00000f00
+			slli t4, t4, 8 # << 8
+			and t5, s3, 0xf0 # mask 0x000000f0
+			slli t5, t5, 4 # << 4
+			li t6, 0xf000000f
+			and s3, s3, t6 # mask 0xf000000f
+			or s3, s3, t0
+			or s3, s3, t1
+			or s3, s3, t2
+			or s3, s3, t3
+			or s3, s3, t4
+			or s3, s3, t5
+			#--------Swap Rows-------
+			li t0, 0xff000000
+			and t0, s3, t0 # isolate row 0
+			srli t0, t0, 24 # row 0 -> 3
+			li t1, 0x00ff0000
+			and t1, s3, t1 # isolate row 1
+			srli t1, t1, 8 # row 1 -> 2
+			li t2, 0x0000ff00
+			and t2, s3, t2 # isolate row 2
+			slli t2, t2, 8 # row 2 -> 1
+			and s3, s3, 0xff # isolate row 3
+			slli s3, s3, 24 # row 3 -> 0
+			or s3, s3, t0
+			or s3, s3, t1
+			or s3, s3, t2
+			
+			#---AddRoundKey---
+			AddRoundKey:
+
+			xor s1, s1, a0 # xor V
+			xor s2, s2, a2 # xor U
+
+			lb t0, 0(s4)  
+			xor s3, s3, t0 # apply round constant
+			li t0, 0x80000000
+			xor s3, s3, t0 # b[n-1] <- b[n-1] xor 1
+
+			#-----Key Schedule---
+			li t0, 0xfff
+			and t0, a0, t0 # isolate 12 bits from k0
+			slli t0, t0, 4 # << 4
+			li t1, 0x0000f000 
+			and t1, a0, t1 # isolate 4 bits form k0
+			srli t1, t1, 12 # >> 12
+			or t1, t1, t0 # update k0
+
+			li t2, 0x00030000 
+			and t2, a0, t2 # isolate 2 bits from k1
+			slli t2, t2, 14 # << 14
+			srli t0, a0, 2 # >> 2
+			or t0, t0, t2 # update k1
+			li t2, 0xffff0000 
+			and t0, t0, t2 # clean space for k0
+			or t0, t0, t1 # apply k0
+			
+			mv a0, a1
+			mv a1, a2
+			mv a2, a3
+			mv a3, t0
+
+			addi s4, s4, 1 # update round constant
+		addi s5, s5, -1
+		WHILE: bne s5, zero, DO
+
+	END: j END
+
+.section .data
+
+	txt1_e: .word 0x0, 0x0, 0x0, 0x0 
+	key1: .word 0x0, 0x0, 0x0, 0x0
+
+	txt2_e: .word 0xaaaaaaaa, 0xcccccccc, 0xf0f0f0f0, 0xff00ff00
+	key2: .word 0xfedcba98, 0x76543210, 0xfedcba98, 0x76543210
+
+	txt3_e: .word 0x6b798671, 0xc1ad9394, 0x95728516, 0xb19cbada
+	key3: .word 0xd0f5c59a, 0x7700d3e7, 0x99028fa9, 0xf90ad837
+
+	const: .byte 0x1, 0x03, 0x07, 0x0F, 0x1F, 0x3E, 0x3D, 0x3B, 0x37, 0x2F, 0x1E, 0x3C, 0x39, 0x33, 0x27, 0x0E, 0x1D, 0x3A, 0x35, 0x2B, 0x16, 0x2C, 0x18, 0x30, 0x21, 0x02, 0x05, 0x0B, 0x17, 0x2E, 0x1C, 0x38, 0x31, 0x23, 0x06, 0x0D, 0x1B, 0x36, 0x2D, 0x1A

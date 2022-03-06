@@ -1,0 +1,385 @@
+# s0 - s3 : plaintext
+# a0 - a7 : key
+# s4 : round constant address
+# s5 : while counter
+# s11 : constant
+
+.section .text
+	.globl main
+	
+	main:
+		la t0, encrypt
+		jalr zero, 0(t0)
+
+.section .itim,"ax",@progbits
+	.globl encrypt
+
+	encrypt:
+		#---Initialization---
+		li s11, 0xffff # CONSTANT VALUE
+
+		la t0, txt2_e # load plaintext
+		lh s0, 0(t0) # Slice 0
+		and s0, s0, s11
+		lh s1, 2(t0) # Slice 1
+		and s1, s1, s11
+		lh s2, 4(t0) # Slice 2
+		and s2, s2, s11
+		lh s3, 6(t0) # Slice 3
+		and s3, s3, s11
+
+		la s4, const
+
+		la t0, key2 # load key
+		lh a0, 14(t0)
+		and a0, a0, s11
+		lh a1, 12(t0)
+		and a1, a1, s11
+		lh a2, 10(t0)
+		and a2, a2, s11
+		lh a3, 8(t0)
+		and a3, a3, s11
+		lh a4, 6(t0)
+		and a4, a4, s11
+		lh a5, 4(t0)
+		and a5, a5, s11
+		lh a6, 2(t0)
+		and a6, a6, s11
+		lh a7, 0(t0)
+		and a7, a7, s11
+
+		li s5, 7 # counter 28 = 7 * 4
+		DO:
+			#+++SUBROUND 1+++
+			#---SubCells---
+			SubCells1:
+			and t0, s0, s2
+			xor s1, s1, t0 # x[1] = x[1] XOR (x[0] AND x[2])
+			and t0, s1, s3
+			xor t0, s0, t0 # t = x[0] XOR (x[1] AND x[3])
+			or t1, t0, s1
+			xor s2, s2, t1 # x[2] = x[2] XOR (t OR x[1])
+			xor s0, s3, s2 # x[0] = x[3] XOR x[2]
+			xor s1, s1, s0 # x[1] = x[1] XOR x[0]
+			xor s0, s0, s11 # x[0] = NOT x[0]
+			and t1, t0, s1 
+			xor s2, s2, t1 # x[2] = x[2] XOR (t AND x[1])
+			mv s3, t0 # x[3] = t
+			#---PermBits---
+			PermBits1:
+			#-----Slice 1-----
+			li t0, 0x1111
+			and t0, s1, t0 # mask 0x1111
+			srli s1, s1, 1 # >> 1
+			slli t0, t0, 3 # << 3
+			li t1, 0x7777
+			and s1, s1, t1 # clean space for t0
+			or s1, s1, t0
+			#-----Slice 2-----
+			li t0, 0x3333
+			and t0, s2, t0 # mask 0x3333
+			srli s2, s2, 2 # >> 2
+			slli t0, t0, 2 # << 2
+			li t1, 0x3333
+			and s2, s2, t1 # clean space for t0
+			or s2, s2, t0
+			#-----Slice 3-----
+			li t0, 0x7777
+			and t0, s3, t0 # mask 0x7777
+			srli s3, s3, 3 # >> 3
+			slli t0, t0, 1 # << 1
+			li t1, 0x1111
+			and s3, s3, t1 # clean space for t0
+			or s3, s3, t0
+
+
+			#---AddRoundKey---
+			AddRoundKey1:
+			xor s0, s0, a0 # apply V
+			xor s1, s1, a1 # apply U
+
+			#-----Add Round Constant-----
+			li t1, 0xffff
+			lh t0, 0(s4) # load round constant
+			and t0, t0, t1 
+			xor s3, s3, t0 # add rount constant
+			li t0, 0x2000
+			xor s3, s3, t0 # b[n-1] = b[n-1] xor 1
+			#-----Update Round Constant----
+			addi s4, s4, 2
+			
+			#-----Update Round Key-----
+			#-------Update K0-------
+			li t0, 0x1111
+			and t0, a0, t0 # mask 0x1111
+			slli t0, t0, 3 # << 3
+			srli a0, a0, 1 # >> 1
+			li t1, 0x7777
+			and a0, a0, t1 # clean space for t0
+			or a0, a0, t0
+			#-------Update K1--------
+			li t0, 0xff00
+			and t0, a1, t0 # mask 0xff00
+			srli t0, t0, 8 # >> 8
+
+			and t1, a1, 0x77 # mask 0x77
+			slli t1, t1, 1 # << 1
+			and t2, a1, 0x88 # mask 0x88
+			srli t2, t2, 3 # >> 3
+			or t1, t1, t2 
+			slli t1, t1, 8 # << 8
+			or a1, t0, t1
+
+			#+++SUBROUND 2+++
+			#---SubCells---
+			SubCells2:
+			and t0, s0, s2
+			xor s1, s1, t0 # x[1] = x[1] XOR (x[0] AND x[2])
+			and t0, s1, s3
+			xor t0, s0, t0 # t = x[0] XOR (x[1] AND x[3])
+			or t1, t0, s1
+			xor s2, s2, t1 # x[2] = x[2] XOR (t OR x[1])
+			xor s0, s3, s2 # x[0] = x[3] XOR x[2]
+			xor s1, s1, s0 # x[1] = x[1] XOR x[0]
+			xor s0, s0, s11 # x[0] = NOT x[0]
+			and t1, t0, s1 
+			xor s2, s2, t1 # x[2] = x[2] XOR (t AND x[1])
+			mv s3, t0 # x[3] = t
+			#---PermBits---
+			PermBits2:
+			#-----Slice 1-----
+			and t0, s1, 0xf # mask 0xf
+			srli s1, s1, 4 # >> 4
+			slli t0, t0, 12 # << 12
+			li t1, 0xfff
+			and s1, s1, t1 # clean space for t0
+			or s1, s1, t0
+			#-----Slice 2-----
+			and t0, s2, 0xff # mask 0xff
+			srli s2, s2, 8 # >> 8
+			slli t0, t0, 8 # << 8 
+			and s2, s2, 0xff # clean space for t0
+			or s2, s2, t0
+			#-----Slice 3-----
+			li t0, 0xfff
+			and t0, s3, t0 # mask 0xfff
+			srli s3, s3, 12 # >> 12
+			slli t0, t0, 4 # << 4
+			and s3, s3, 0xf # clean space for t0
+			or s3, s3, t0
+
+			#---AddRoundKey---
+			AddRoundKey2:
+			xor s0, s0, a2 # apply V
+			xor s1, s1, a3 # apply U
+
+			#-----Add Round Constant-----
+			li t1, 0xffff
+			lh t0, 0(s4) # load round constant
+			and t0, t0, t1 
+			xor s3, s3, t0 # add rount constant
+			xor s3, s3, 0x20 # b[n-1] = b[n-1] xor 1
+
+			#-----Update Round Constant----
+			addi s4, s4, 2
+			
+			#-----Update Round Key-----
+			#-------Update K2-------
+			and t0, a2, 0xf # mask 0xf
+			srl a2, a2, 4 # >> 4
+			sll t0, t0, 12 # << 12
+			or a2, a2, t0
+			#-------Update K3--------
+			li t1, 0x3333
+			and t0, a3, t1 # mask 0x3333
+			srl a3, a3, 2 # >> 2
+			sll t0, t0, 2 # << 2
+			and a3, a3, t1 # clean space for t0
+			or a3, a3, t0
+
+			and t0, a3, 0x666 # mask 0x666
+			li t1, 0x6000
+			and t1, a3, t1 # mask 0x6000
+			sll t0, t0, 4 # << 4
+			srl t1, t1, 12 # >> 12
+			li t2, 0x9999 
+			and a3, a3, t2 # clean space for t0 and t1
+			or a3, a3, t0
+			or a3, a3, t1
+
+			#+++SUBROUND 3+++
+			#---SubCells---
+			SubCells3:
+			and t0, s0, s2
+			xor s1, s1, t0 # x[1] = x[1] XOR (x[0] AND x[2])
+			and t0, s1, s3
+			xor t0, s0, t0 # t = x[0] XOR (x[1] AND x[3])
+			or t1, t0, s1
+			xor s2, s2, t1 # x[2] = x[2] XOR (t OR x[1])
+			xor s0, s3, s2 # x[0] = x[3] XOR x[2]
+			xor s1, s1, s0 # x[1] = x[1] XOR x[0]
+			xor s0, s0, s11 # x[0] = NOT x[0]
+			and t1, t0, s1 
+			xor s2, s2, t1 # x[2] = x[2] XOR (t AND x[1])
+			mv s3, t0 # x[3] = t
+
+			#---PermBits---
+			PermBits3:
+			#-----Slice 1-----
+			li t0, 0x7777
+			and t0, s1, t0 # mask 0x7777
+			li t1, 0x8888
+			and s1, s1, t1 # mask 0x8888
+			srl s1, s1, 3 # >> 3
+			sll t0, t0, 1 # << 1
+			or s1, s1, t0
+			#-----Slice 2-----
+			li t0, 0x3333
+			and t0, s2, t0 # mask 0x3333
+			li t1, 0xcccc 
+			and s2, s2, t1 # mask 0xcccc
+			srl s2, s2, 2 # >> 2
+			sll t0, t0, 2 # << 2
+			or s2, s2, t0 
+			#-----Slice 3-----
+			li t0, 0x1111
+			and t0, s3, t0 # mask 0x1111
+			li t1, 0xeeee 
+			and s3, s3, t1 # mask 0xeeee
+			srl s3, s3, 1 # >> 1
+			sll t0, t0, 3 # << 3
+			or s3, s3, t0
+
+
+			#---AddRoundKey---
+			AddRoundKey3:
+			xor s0, s0, a4 # apply V
+			xor s1, s1, a5 # apply U
+
+			#-----Add Round Constant-----
+			li t1, 0xffff
+			lh t0, 0(s4) # load round constant
+			and t0, t0, t1 
+			xor s3, s3, t0 # add rount constant
+			xor s3, s3, 0x80 # b[n-1] = b[n-1] xor 1
+
+			#-----Update Round Constant----
+			addi s4, s4, 2
+			
+			#-----Update Round Key-----
+			#-------Update K4-------
+			li t0, 0x7777
+			and t0, a4, t0 # mask 0x7777
+			li t1, 0x8888
+			and a4, a4, t1 # mask 0x8888
+			srl a4, a4, 3 # >> 3
+			sll t0, t0, 1 # << 1
+			or a4, a4, t0
+			#-------Update K5--------
+			
+			and t0, a5, 0xff # mask 0x00ff
+			li t1, 0xff00
+			and a5, a5, t1 # mask 0xff00
+			srl a5, a5, 8 # >> 8
+			sll t0, t0, 8 # << 8
+			or a5, a5, t0
+
+			li t0, 0xee0
+			and t0, a5, t0 # mask 0x0ee0
+			and t1, a5, 0x110 # mask 0x0110
+			srl t0, t0, 1 # >> 1
+			sll t1, t1, 3 # << 3
+			li t2, 0xf00f 
+			and a5, a5, t2 # clean space for t0 and t1
+			or a5, a5, t0
+			or a5, a5, t1
+
+			#+++SUBROUND 4+++
+			#---SubCells---
+			SubCells4:
+			and t0, s0, s2
+			xor s1, s1, t0 # x[1] = x[1] XOR (x[0] AND x[2])
+			and t0, s1, s3
+			xor t0, s0, t0 # t = x[0] XOR (x[1] AND x[3])
+			or t1, t0, s1
+			xor s2, s2, t1 # x[2] = x[2] XOR (t OR x[1])
+			xor s0, s3, s2 # x[0] = x[3] XOR x[2]
+			xor s1, s1, s0 # x[1] = x[1] XOR x[0]
+			xor s0, s0, s11 # x[0] = NOT x[0]
+			and t1, t0, s1 
+			xor s2, s2, t1 # x[2] = x[2] XOR (t AND x[1])
+			mv s3, t0 # x[3] = t
+
+			#---PermBits---
+			PermBits4:
+			#-----Slice 1-----
+			li t0, 0xfff
+			and t0, s1, t0 # mask 0x0fff
+			srl s1, s1, 12 # >> 12
+			sll t0, t0, 4 # << 4
+			or s1, s1, t0 
+			#-----Slice 2-----
+			and t0, s2, 0xff # mask 0x00ff
+			srl s2, s2, 8 # >> 8
+			sll t0, t0, 8 # << 8
+			or s2, s2, t0
+			#-----Slice 3-----
+			and t0, s3, 0xf
+			srl s3, s3, 4 # >> 4
+			sll t0, t0, 12 # << 12
+			or s3, s3, t0
+
+			#---AddRoundKey---
+			AddRoundKey4:
+			xor s0, s0, a6 # apply V
+			xor s1, s1, a7 # apply U
+
+			#-----Add Round Constant-----
+
+			li t1, 0xffff
+			lh t0, 0(s4) # load round constant
+			and t0, t0, t1 
+			xor s3, s3, t0 # add round constant
+			li t0, 0x8000
+			xor s3, s3, t0 # b[n-1] = b[n-1] xor 1
+
+			#-----Update Round Constant----
+			addi s4, s4, 2
+			
+			#-----Update Round Key-----
+			#-------Update K6-------
+			li t0, 0xfff
+			and t0, a6, t0 # mask 0x0fff
+			srl a6, a6, 12 # >> 12
+			sll t0, t0, 4 # << 4
+			or a6, a6, t0
+
+			#-------Update K7--------
+			li t2, 0x3333
+			and t0, a7, t2 # mask 0x3333
+			srl a7, a7, 2 # >> 2
+			sll t0, t0, 2 # << 2
+			and a7, a7, t2 # clean space for t0
+			or a7, a7, t0
+
+			and t0, a7, 0xc # mask 0x000c
+			li t1, 0xccc0 
+			and t1, a7, t1 # mask 0xccc0
+			srl t1, t1, 4 # >> 4
+			sll t0, t0, 12 # << 12
+			li t2, 0x3333
+			and a7, a7, t2 # clean space for t0 and t1
+			or a7, a7, t0
+			or a7, a7, t1
+
+		addi s5, s5, -1
+		WHILE: bne s5, zero, DO
+
+		END: j END
+
+.section .data
+	txt2_e: .half 0xaaaa, 0xcccc, 0xf0f0, 0xff00 
+	key2: .half 0xfedc, 0xba98, 0xcf0a, 0xc00a, 0x7ef6, 0x3ab2, 0x0f6a, 0x006a
+
+	const: .half 0x0001, 0x0009, 0x1101, 0x000f, 0x1119, 0x900e, 0x2113, 0x003b, 0x0199, 0x800f, 0x1112, 0x003c, 0x1089, 0x9009, 0x3101, 0x000e, 0x1109, 0x900a, 0x2103, 0x002b, 0x0118, 0x8006, 0x0012, 0x0030, 0x0081, 0x0008, 0x0101, 0x000b
+
