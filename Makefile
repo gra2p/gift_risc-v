@@ -3,7 +3,7 @@ gdb_port ?= 3333
 build_dir ?= build
 src_dir ?= gift
 exec ?= baseline64
-linker ?= fast_linker.ld
+linker ?= linker_script.ld
 
 debug_flags ?= -ex "b END" -ex "j main" -ex "i r s10"
 

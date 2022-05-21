@@ -1,0 +1,270 @@
+# s0 - s3 : plaintext
+# a0: key
+# a1 : key address
+# s4 : round constant address
+# s5 : while counter
+
+.macro RightShift dst, src, mask, shift
+	li t0, \mask
+	and t0, \src, t0
+	srl t0, t0, \shift
+	or \dst, \dst, t0
+.endm
+
+.macro LeftShift dst, src, mask, shift
+	li t0, \mask
+	and t0, \src, t0
+	sll t0, t0, \shift
+	or \dst, \dst, t0
+.endm
+
+.macro SubCells x0, x1, x2, x3
+    and t0, \x0, \x2
+	xor \x1, \x1, t0 # x[1] = x[1] XOR (x[0] AND x[2])
+	and t0, \x1, \x3
+	xor t0, \x0, t0 # t = x[0] XOR (x[1] AND x[3])
+	or t1, t0, \x1
+	xor \x2, \x2, t1 # x[2] = x[2] XOR (t OR x[1])
+	xor \x0, \x3, \x2 # x[0] = x[3] XOR x[2]
+	xor \x1, \x1, \x0 # x[1] = x[1] XOR x[0]
+	not \x0, \x0 # x[0] = NOT x[0]
+	and t1, t0, \x1 
+	xor \x2, \x2, t1 # x[2] = x[2] XOR (t AND x[1])
+	mv \x3, t0 # x[3] = t
+.endm
+
+.section .text
+	.globl main
+	
+	main:
+		la t0, encrypt
+		jalr zero, 0(t0)
+
+.section .itim,"ax",@progbits
+	.globl encrypt
+
+	encrypt:
+		la s4, const # round constant
+		# la a1, key2 # key address
+		la t0, txt2_e # load plaintext
+		lw s0, 0(t0) # Slice 0
+		lw s1, 4(t0) # Slice 1
+		lw s2, 8(t0) # Slice 2
+		lw s3, 12(t0) # Slice 3
+
+		la a1, key2 # load key
+
+		li s5, 8
+		DO:
+			#+++SUBROUND 1+++
+			SubCells s0, s1, s2, s3
+			#---PermBits---
+		
+			li t5, 0x11111111
+			li t6, 0x77777777
+			#-----Slice 0-----
+			and t0, s0, t5 # mask 0x11111111
+			sll t0, t0, 3 # << 3
+			srl s0, s0, 1 # >> 1
+			and s0, s0, t6 # clean space for t0
+			or s0, s0, t0
+
+			#-----Slice 1-----
+			li t2, 0x33333333
+			and t0, s1, t2 # mask 0x33333333
+			sll t0, t0, 2 # << 2
+			srl s1, s1, 2 # >> 2
+			and s1, s1, t2 # clean space for t0
+			or s1, s1, t0
+
+			#-----Slice 2-----
+			and t0, s2, t6 # mask 0x77777777
+			sll t0, t0, 1 # << 1
+			srl s2, s2, 3 # >> 3
+			and s2, s2, t5 # clean space for t0
+			or s2, s2, t0
+
+			#---AddRoundKey---
+
+			lw a0, 0(a1)
+			xor s1, s1, a0 # add k1||k0 to slice 1
+
+			lw a0, 4(a1)
+			xor s2, s2, a0 # add k5||k4 to slice 2 
+			
+
+			lw t0, 0(s4) # load round constant
+			xor s3, s3, t0 # apply round constant 
+
+			#---Key Scheduler---
+			add s4, s4, 4 # increment round constant address
+			add a1, a1, 8 # increment round key address
+			
+			#+++SUBROUND 2+++
+			SubCells s0, s1, s2, s3
+
+			#---PermBits---
+	
+			#-----Slice 0-----
+			li t0, 0xfff0fff0
+			and t0, s0, t0
+			li t1, 0x000f000f
+			and t1, s0, t1
+			srl t0, t0, 4
+			sll t1, t1, 12
+			or s0, t0, t1
+
+			#-----Slice 1-----
+			li t0, 0xff00ff00
+			and t0, s1, t0
+			li t1, 0x00ff00ff
+			and t1, s1, t1
+			srl t0, t0, 8
+			sll t1, t1, 8
+			or s1, t0, t1 
+
+			#-----Slice 2-----
+			li t0, 0xf000f000
+			and t0, s2, t0
+			li t1, 0x0fff0fff
+			and t1, s2, t1
+			srl t0, t0, 12
+			sll t1, t1, 4
+			or s2, t0, t1
+
+			#---AddRoundKey---
+
+			lw a0, 0(a1)
+			xor s1, s1, a0 # add k1||k0 to slice 1
+
+			lw a0, 4(a1)
+			xor s2, s2, a0 # add k5||k4 to slice 2 
+
+			lw t0, 0(s4) # load round constant
+			xor s3, s3, t0 # apply round constant 
+
+			#---Key Scheduler---
+			add s4, s4, 4 # increment round constant
+			add a1, a1, 8
+
+			#+++SUBROUND 3+++
+			SubCells s0, s1, s2, s3
+
+			#---PermBits---
+			#-----Slice 0-----
+			mv a4, zero
+			LeftShift a4, s0, 0x00005555, 17
+			RightShift a4, s0, 0xffff0000, 16
+			LeftShift a4, s0, 0x0000aaaa, 15
+			mv s0, a4
+			#-----Slice 1-----
+			mv a4, zero
+			RightShift a4, s1, 0xaaaaaaaa, 1
+			LeftShift a4, s1, 0x55555555, 1
+			mv s1, a4
+			#-----Slice 2-----
+			mv a4, zero
+			RightShift a4, s2, 0x55550000, 15
+			LeftShift a4, s2, 0x0000ffff, 16
+			RightShift a4, s2, 0xaaaa0000, 17
+			mv s2, a4
+
+			#---AddRoundKey---
+
+			lw a0, 0(a1)
+			xor s1, s1, a0 # add k1||k0 to slice 1
+
+			lw a0, 4(a1)
+			xor s2, s2, a0 # add k5||k4 to slice 2 
+
+			lw t0, 0(s4) # load round constant
+			xor s3, s3, t0 # apply round constant 
+
+			#---Key Scheduler---
+			add s4, s4, 4 # increment round constant
+			add a1, a1, 8
+
+			#+++SUBROUND 4+++
+			SubCells s0, s1, s2, s3
+
+			#---PermBits---
+		
+			#-----Slice 0-----
+			mv a4, zero
+			RightShift a4, s0, 0xc0c0c0c0, 6
+			LeftShift a4, s0, 0x3f3f3f3f, 2
+			mv s0, a4
+			#-----Slice 1-----
+			mv a4, zero
+			RightShift a4, s1, 0xf0f0f0f0, 4
+			LeftShift a4, s1, 0x0f0f0f0f, 4
+			mv s1, a4
+			#-----Slice 2-----
+			mv a4, zero
+			RightShift a4, s2, 0xfcfcfcfc, 2
+			LeftShift a4, s2, 0x03030303, 6
+			mv s2, a4
+
+			#---AddRoundKey---
+
+			lw a0, 0(a1)
+			xor s1, s1, a0 # add k1||k0 to slice 1
+
+
+			lw a0, 4(a1)
+			xor s2, s2, a0 # add k5||k4 to slice 2 
+
+
+			lw t0, 0(s4) # load round constant
+			xor s3, s3, t0 # apply round constant 
+
+			#---Key Scheduler---
+			add s4, s4, 4 # increment round constant
+			add a1, a1, 8
+
+			#+++SUBROUND 4+++
+			SubCells s0, s1, s2, s3
+
+			#---PermBits---
+			#-----Slice 0-----
+			li t0, 0xff000000
+			and t0, s0, t0
+			srl t0, t0, 24
+			sll s0, s0, 8
+			or s0, s0, t0
+			#-----Slice 1-----
+			li t0, 0xffff0000
+			and t0, s1, t0
+			srl t0, t0, 16
+			sll s1, s1, 16
+			or s1, s1, t0
+			#-----Slice 2-----
+			and t0, s2, 0x000000ff
+			sll t0, t0, 24
+			srl s2, s2, 8
+			or s2, s2, t0
+
+			#---AddRoundKey---
+			lw a0, 0(a1)
+			xor s1, s1, a0 # add k1||k0 to slice 1
+
+			lw a0, 4(a1)
+			xor s2, s2, a0 # add k5||k4 to slice 2 
+
+
+			lw t0, 0(s4) # load round constant
+			xor s3, s3, t0 # apply round constant 
+			#---Key Scheduler---
+			add s4, s4, 4 # increment round constant
+			add a1, a1, 8
+
+		addi s5, s5, -1
+		WHILE: bne zero, s5, DO 
+
+		END: j END
+
+.section .data
+	txt2_e: .word 0xaaaaaaaa, 0xcccccccc, 0xf0f0f0f0, 0xff00ff00 
+	# key2: .word 0xfedcba98, 0x76543210, 0xfedcba98, 0x76543210
+	key2: .word 0x035f0350, 0x035f0350, 0x5f5f2277, 0x5f5f2277, 0x08c838f8, 0xd882ca90, 0xaaccf0ff, 0xf5f9506f, 0x1d952103, 0x1d952103, 0xe073d3bf, 0xe073d3bf, 0x821488ee, 0xa02822dd, 0xf9a3ebb1, 0x9b7bab4b, 0x5a63f000, 0x5a63f000, 0xcfed98ba, 0xcfed98ba, 0x03ac0393, 0x2383204f, 0xf57d22dd, 0x7dfa88bb, 0xc29ad088, 0xc29ad088, 0xf5f6a03f, 0xf5f6a03f, 0x51d90321, 0x54763210, 0xe3b3e07f, 0xf36ff360, 0x0aa02277, 0x0aa02277, 0x2beb1bdb, 0x2beb1bdb, 0xaa3cf000, 0xf5095090, 0xdcfeba98, 0xb73fa98b, 0x1043238f, 0x1043238f, 0xd7eb88ee, 0xd7eb88ee, 0xda80c892, 0xb8588868, 0xf5f9509f, 0x5a93f0ff, 0x65471032, 0x65471032, 0xf39cf3a3, 0xf39cf3a3, 0xa08222dd, 0x280588bb, 0xbb5b8b6b, 0xe1b9f3ab, 0xf506a0c0, 0xf506a0c0, 0xfb738ba9, 0xfb738ba9, 0x1383104f, 0x035f0350, 0x7daf88bb, 0x5f5f2277, 0x08c838f8, 0x08c838f8, 0xaaccf0ff, 0xaaccf0ff, 0x76543210, 0x1d952103, 0xf35ff350, 0xe073d3bf, 0x821488ee, 0x821488ee, 0xf9a3ebb1, 0xf9a3ebb1, 0xf5095060, 0x5a63f000, 0x3fb7a98b, 0xcfed98ba
+	const: .word 0x10000008, 0x80018000, 0x54000002, 0x01010181, 0x8000001f, 0x10888880, 0x6001e000, 0x51500002, 0x03030180, 0x8000002f, 0x10088880, 0x60016000, 0x41500002, 0x03030080, 0x80000027, 0x10008880, 0x4001e000, 0x11500002, 0x03020180, 0x8000002b, 0x10080880, 0x60014000, 0x01400002, 0x02020080, 0x80000021, 0x10000080, 0x0001c000, 0x51000002, 0x03010180, 0x8000002e, 0x10088800, 0x60012000, 0x40500002, 0x01030080, 0x80000006, 0x10008808, 0xc001a000, 0x14500002, 0x01020181, 0x8000001a

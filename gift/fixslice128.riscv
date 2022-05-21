@@ -115,8 +115,6 @@
 
 	encrypt:
 
-		csrr s9, mcycle # MEASUREMENT
-
 		la s4, const # round constant
 
 		la t0, txt2_e # load plaintext
@@ -446,9 +444,6 @@
 
 		addi s5, s5, -1
 		WHILE: bne zero, s5, DO 
-
-		csrr s10, mcycle # MEASUREMENT
-		sub s10, s10, s9
 
 		END: j END
 
